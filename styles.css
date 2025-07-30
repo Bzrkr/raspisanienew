@@ -1,0 +1,582 @@
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #eeeeeece;
+        }
+        
+        #loading {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    z-index: 1000;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    gap: 20px;
+}
+
+.loader {
+    --background: linear-gradient(135deg, #23C4F8, #275EFE);
+    --shadow: rgba(39, 94, 254, 0.28);
+    --text: #6C7486;
+    --page: rgba(255, 255, 255, 0.36);
+    --page-fold: rgba(255, 255, 255, 0.52);
+    --duration: 3s;
+    width: 200px;
+    height: 140px;
+    position: relative;
+}
+
+.loader:before, .loader:after {
+    --r: -6deg;
+    content: "";
+    position: absolute;
+    bottom: 8px;
+    width: 120px;
+    top: 80%;
+    box-shadow: 0 16px 12px var(--shadow);
+    transform: rotate(var(--r));
+}
+
+.loader:before {
+    left: 4px;
+}
+
+.loader:after {
+    --r: 6deg;
+    right: 4px;
+}
+
+.loader div {
+    width: 100%;
+    height: 100%;
+    border-radius: 13px;
+    position: relative;
+    z-index: 1;
+    perspective: 600px;
+    box-shadow: 0 4px 6px var(--shadow);
+    background-image: var(--background);
+}
+
+.loader div ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    position: relative;
+}
+
+.loader div ul li {
+    --r: 180deg;
+    --o: 0;
+    --c: var(--page);
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    transform-origin: 100% 50%;
+    color: var(--c);
+    opacity: var(--o);
+    transform: rotateY(var(--r));
+    animation: var(--duration) ease infinite;
+}
+
+.loader div ul li:nth-child(2) {
+    --c: var(--page-fold);
+    animation-name: page-2;
+}
+
+.loader div ul li:nth-child(3) {
+    --c: var(--page-fold);
+    animation-name: page-3;
+}
+
+.loader div ul li:nth-child(4) {
+    --c: var(--page-fold);
+    animation-name: page-4;
+}
+
+.loader div ul li:nth-child(5) {
+    --c: var(--page-fold);
+    animation-name: page-5;
+}
+
+.loader div ul li svg {
+    width: 90px;
+    height: 120px;
+    display: block;
+}
+
+.loader div ul li:first-child {
+    --r: 0deg;
+    --o: 1;
+}
+
+.loader div ul li:last-child {
+    --o: 1;
+}
+
+.loader span {
+    display: block;
+    left: 0;
+    right: 0;
+    top: 100%;
+    margin-top: 20px;
+    text-align: center;
+    color: var(--text);
+}
+
+@keyframes page-2 {
+    0% {
+        transform: rotateY(180deg);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    35%, 100% {
+        opacity: 0;
+    }
+    50%, 100% {
+        transform: rotateY(0deg);
+    }
+}
+
+@keyframes page-3 {
+    15% {
+        transform: rotateY(180deg);
+        opacity: 0;
+    }
+    35% {
+        opacity: 1;
+    }
+    50%, 100% {
+        opacity: 0;
+    }
+    65%, 100% {
+        transform: rotateY(0deg);
+    }
+}
+
+@keyframes page-4 {
+    30% {
+        transform: rotateY(180deg);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    65%, 100% {
+        opacity: 0;
+    }
+    80%, 100% {
+        transform: rotateY(0deg);
+    }
+}
+
+@keyframes page-5 {
+    45% {
+        transform: rotateY(180deg);
+        opacity: 0;
+    }
+    65% {
+        opacity: 1;
+    }
+    80%, 100% {
+        opacity: 0;
+    }
+    95%, 100% {
+        transform: rotateY(0deg);
+    }
+}
+        
+        .current-time-slot {
+            background-color: #c8f5f7 !important;
+            box-shadow:
+                inset -0.75px -0.5px rgba(255, 255, 255, 0.1),
+                inset +0.75px +0.5px rgba(255, 255, 255, 0.025),
+                3px 2px 10px rgba(0, 0, 0, 0.25),
+                inset 0px 0px 10px 5px rgba(255, 255, 255, 0.025),
+                inset 0px 0px 40px 5px rgba(255, 255, 255, 0.025);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #datePicker
+{
+border-radius: 11px;
+padding: 4px;
+ box-shadow:
+                    inset -0.75px -0.5px rgba(255, 255, 255, 0.1),
+                    inset +0.75px +0.5px rgba(255, 255, 255, 0.025),
+                    3px 2px 10px rgba(0, 0, 0, 0.25),
+                    inset 0px 0px 10px 5px rgba(255, 255, 255, 0.025),
+                    inset 0px 0px 40px 5px rgba(255, 255, 255, 0.025);
+}
+        #controls {
+            margin-bottom: 20px;
+            background-color: #e0e0e0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+             margin: 15px;
+                padding: 15px;
+                border-radius: 15px;
+               box-shadow: 20px 20px 60px #bebebe,
+               -20px -20px 60px #ffffff;
+        }
+        .nav-btn {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    box-shadow:
+        inset -0.75px -0.5px rgba(255, 255, 255, 0.1),
+        inset +0.75px +0.5px rgba(255, 255, 255, 0.025),
+        3px 2px 10px rgba(0, 0, 0, 0.25),
+        inset 0px 0px 10px 5px rgba(255, 255, 255, 0.025),
+        inset 0px 0px 40px 5px rgba(255, 255, 255, 0.025);
+    transition: background-color 0.3s;
+}
+
+.nav-btn:hover {
+    background-color: #0b7dda;
+}
+
+.nav-btn:active {
+    transform: scale(0.98);
+}
+        #weekDisplay {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        #schedules-container {
+            overflow-x: auto;
+            max-width: 100%;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            
+        }
+        
+        #schedules {
+            display: grid;
+            grid-template-columns: 120px repeat(auto-fit, minmax(5%, 1fr));
+            min-width: max-content;
+            border-radius: 15px;
+            background-color: #e9edf3;
+            
+        }
+        
+        .header-cell {
+            padding: 10px;
+            background-color: #b9c6d7;
+            font-weight: bold;
+            text-align: center;
+            position: sticky;
+            z-index: 2;
+        }
+        
+        .time-header {
+            left: 0;
+            border-right: 1px solid #ddd;
+        }
+        
+        .auditory-header {
+            top: 0;
+            border-bottom: 1px solid #ddd;
+
+        }
+        
+        .time-cell {
+            padding: 10px;
+            background-color: #f5f5f5;
+            font-weight: bold;
+            text-align: center;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            border-top: 1px solid #e2e1e1;
+            border-bottom: 1px solid #e2e1e1;
+        }
+        
+        .auditory-cell {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            border: 1px solid #e2e1e1;
+            
+        }
+        
+        .lesson {
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            
+        }
+        
+        .no-lesson {
+            color: #888;
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+            border: 1px dashed #cac6c6;
+            border-radius: 15px;
+        }
+        
+        .lesson-time {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .lesson-subject {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .lesson-type {
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .group-link {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 2px;
+            background-color: white;
+            border-radius: 12px;
+            border: 1px solid #3a547f;
+            color: #1890ff;
+            text-decoration: none;
+            font-size: 0.85em;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .group-link:hover {
+            background-color: #f5f5f5;
+            text-decoration: none;
+        }
+
+        .lesson-groups {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        /* Цвета для разных типов занятий */
+        .lecture { background-color: #ffffff; border-left: 4px solid #33db24; }
+        .practice { background-color: #ffffff; border-left: 4px solid #8e4fec; }
+        .lab { background-color: #ffffff; border-left: 4px solid #f98f43; }
+        .exam { background-color: #ffffff; border-left: 4px solid #f95b5e; }
+        .consultation { background-color: #ffffff; border-left: 4px solid #4fe8ff; }
+        .organization { background-color: #ffffff; border-left: 4px solid #c213ab; }
+        .Test{ background-color: #ffffff; border-left: 4px solid #ffd900; }
+        .Instpractice{ background-color: #ffffff; border-left: 4px solid #8e4fec; }
+        .Instlab{ background-color: #ffffff; border-left: 4px solid #f98f43; }
+        .Instlecture{ background-color: #ffffff; border-left: 4px solid #33db24; }
+
+        /* Стили для кастомного чекбокса */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding-left: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            user-select: none;
+        }
+
+        .checkbox-container input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 20px;
+            width: 20px;
+            background-color: #eee;
+            border-radius: 4px;
+        }
+
+        .checkbox-container:hover input ~ .checkmark {
+            background-color: #ccc;
+        }
+
+        .checkbox-container input:checked ~ .checkmark {
+            background-color: #2196F3;
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .checkbox-container input:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        .checkbox-container .checkmark:after {
+            left: 7px;
+            top: 3px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        @media (max-width: 768px) {
+            #schedules {
+                grid-template-columns: 1fr;
+                min-width: auto;
+            }
+            
+            #controls {
+                margin: 15px;
+                padding: 15px;
+                border-radius: 15px;
+                box-shadow:
+                    inset -0.75px -0.5px rgba(255, 255, 255, 0.1),
+                    inset +0.75px +0.5px rgba(255, 255, 255, 0.025),
+                    3px 2px 10px rgba(0, 0, 0, 0.25),
+                    inset 0px 0px 10px 5px rgba(255, 255, 255, 0.025),
+                    inset 0px 0px 40px 5px rgba(255, 255, 255, 0.025);
+            }
+            
+            .current-time-slot-mobile {
+                box-shadow: 0px 0px 2px 4px #00f7ff;
+                border-radius: 15px;
+                animation: shadowPulse 2s infinite alternate;
+            }
+            
+            @keyframes shadowPulse {
+                0% { box-shadow: 0px 0px 2px 4px #cbfdff; }
+                100% { box-shadow: 0px 0px 2px 4px #00f7ff; }
+            }
+            
+            .header-cell.auditory-header {
+                display: none;
+            }
+            
+            .time-header {
+                position: static;
+                border-right: none;
+            }
+            
+            .time-cell {
+                position: static;
+                border-right: none;
+                background-color: #b9c6d7da;
+                font-weight: bold;
+                text-align: center;
+                padding: 15px;
+                margin-bottom: 10px;
+                border-radius: 15px;
+            }
+            
+            .auditory-cell {
+                display: none;
+            }
+            
+            .mobile-time-container {
+                margin-bottom: 10px;
+                background-color: #ffffff;
+            }
+            
+            .mobile-auditories-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                background-color: #e9edf3;
+                gap: 10px;
+                margin-top: 10px;
+                border-radius: 15px;
+            }
+            
+            .mobile-auditory-card {
+                border: 1px solid #aaaaaa;
+                border-radius: 15px;
+                padding: 12px;
+                margin: 8px;
+                background-color: white;
+            }
+            
+            .mobile-auditory-name {
+                font-weight: bold;
+                margin-bottom: 5px;
+                color: #3a547f;
+            }
+            
+            .mobile-lesson {
+                margin-bottom: 8px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #eee;
+            }
+            
+            .mobile-lesson:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+                padding-bottom: 0;
+            }
+            
+            .mobile-lesson-time {
+                font-size: 0.85em;
+                color: #666;
+            }
+            
+            .mobile-lesson-subject {
+                font-weight: bold;
+                margin: 3px 0;
+            }
+            
+            .mobile-lesson-type {
+                display: inline-block;
+                font-size: 0.8em;
+                background-color: #f0f0f0;
+                padding: 2px 5px;
+                border-radius: 3px;
+                margin-right: 5px;
+            }
+            
+            .mobile-lesson-groups {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+                margin-top: 4px;
+            }
+            
+            .mobile-group-link {
+                font-size: 0.75em;
+                color: #1890ff;
+                text-decoration: none;
+            }
+            
+            .mobile-lesson-teacher {
+                font-size: 0.85em;
+                color: #555;
+                margin-top: 3px;
+            }
+        }
