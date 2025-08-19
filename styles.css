@@ -1,11 +1,9 @@
-
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #eeeeeece;
-        }
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #ffffffff;}
         
-        #loading {
+#loading {
     display: none;
     position: fixed;
     top: 0;
@@ -18,8 +16,7 @@
     justify-content: center;
     align-items: center;
     font-size: 1.5em;
-    gap: 20px;
-}
+    gap: 20px;}
 
 .loader {
     --background: linear-gradient(135deg, #23C4F8, #275EFE);
@@ -30,8 +27,7 @@
     --duration: 3s;
     width: 200px;
     height: 140px;
-    position: relative;
-}
+    position: relative;}
 
 .loader:before, .loader:after {
     --r: -6deg;
@@ -41,12 +37,10 @@
     width: 120px;
     top: 80%;
     box-shadow: 0 16px 12px var(--shadow);
-    transform: rotate(var(--r));
-}
+    transform: rotate(var(--r));}
 
 .loader:before {
-    left: 4px;
-}
+    left: 4px;}
 
 .loader:after {
     --r: 6deg;
@@ -208,8 +202,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        #datePicker
-{
+        #datePicker{
 border-radius: 11px;
 padding: 4px;
  box-shadow:
@@ -232,6 +225,7 @@ padding: 4px;
                box-shadow: 20px 20px 60px #bebebe,
                -20px -20px 60px #ffffff;
         }
+        
         .nav-btn {
     background-color: #2196F3;
     color: white;
@@ -265,23 +259,26 @@ padding: 4px;
             overflow-x: auto;
             max-width: 100%;
             margin-top: 20px;
+            background-color: #fff;
             border: 1px solid #ddd;
             border-radius: 15px;
             
         }
         
-        #schedules {
+        #schedules {   /* контейнер занятий*/
             display: grid;
-            grid-template-columns: 120px repeat(auto-fit, minmax(5%, 1fr));
-            min-width: min-content;
+            grid-template-columns: 120px repeat(auto-fit, minmax(5%, 1fr));/* ширина контейнера по содержимому*/
+            min-width: min-content;/* ширина контейнера по содержимому*/
             border-radius: 15px;
             background-color: #e9edf3;
             
         }
         
-        .header-cell {
+        .header-cell { /* ячейки кабинетов*/
             padding: 10px;
             background-color: #b9c6d7;
+            box-shadow: 
+               -20px -20px 60px #ffffff;
             font-weight: bold;
             text-align: center;
             position: sticky;
@@ -291,6 +288,7 @@ padding: 4px;
         .time-header {
             left: 0;
             border-right: 1px solid #ddd;
+            
         }
         
         .auditory-header {
@@ -580,4 +578,3 @@ padding: 4px;
                 margin-top: 3px;
             }
         }
-
