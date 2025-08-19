@@ -273,7 +273,7 @@ padding: 4px;
         #schedules {
             display: grid;
             grid-template-columns: 120px repeat(auto-fit, minmax(5%, 1fr));
-            min-width: max-content;
+            min-width: min-content;
             border-radius: 15px;
             background-color: #e9edf3;
             
@@ -580,3 +580,4 @@ padding: 4px;
                 margin-top: 3px;
             }
         }
+
