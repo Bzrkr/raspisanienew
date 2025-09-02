@@ -1,7 +1,7 @@
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
-    background-color: #ffffffff;}
+    background-color: #3a547f;}
         
 #loading {
     display: none;
@@ -187,7 +187,26 @@ body {
         transform: rotateY(0deg);
     }
 }
-        
+::-webkit-scrollbar {
+  width: 15px; /* ширина скроллбара */
+  height: 15px; /* высота горизонтального скроллбара */
+}
+
+::-webkit-scrollbar-track {
+  background: #d3d3d3; /* фон дорожки */
+  border-radius: 10px; /* скругление дорожки */
+ 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9c9c9c; /* цвет бегунка */
+  border-radius: 10px; /* скругление бегунка */
+  border: 2px solid #d3d3d3; /* отступ вокруг бегунка */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555; /* цвет бегунка при наведении */
+}        
         .current-time-slot {
             background-color: #c8f5f7 !important;
             box-shadow:
@@ -202,6 +221,7 @@ body {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
         #datePicker{
 border-radius: 11px;
 padding: 4px;
@@ -220,10 +240,11 @@ padding: 4px;
             align-items: center;
             flex-wrap: wrap;
              margin: 15px;
-                padding: 15px;
+                padding: 13px;
                 border-radius: 15px;
-               box-shadow: 20px 20px 60px #bebebe,
-               -20px -20px 60px #ffffff;
+                
+              /*  box-shadow: 20px 20px 60px #bebebe,
+               -20px -20px 60px #ffffff;*/
         }
         
         .nav-btn {
@@ -260,8 +281,8 @@ padding: 4px;
             max-width: 100%;
             margin-top: 20px;
             background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 15px;
+            border: 1px solid #3a547f;;
+            border-radius: 25px;
             
         }
         
