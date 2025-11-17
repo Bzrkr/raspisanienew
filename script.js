@@ -1,5 +1,4 @@
-
-        const dayNames = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+const dayNames = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
         const IPEauditories = ["502-2 к.", "601-2 к.", "603-2 к.", "604-2 к.", "605-2 к.", "607-2 к.", "611-2 к.", "613-2 к.", "615-2 к."];
         const additionalAuditories = ["602-2 к."];
 
@@ -35,52 +34,63 @@
             return response.json();
         }
 
+        // Обновляем текст загрузки с процентами
+function updateLoadingTextWithProgress(text, done, total) {
+    const pct = total > 0 ? Math.round((done * 100) / total) : 0;
+    document.querySelector('#loading span').textContent = `${text} (${pct}%)`;
+}
+
         async function loadInitialData() {
             document.getElementById('loading').style.display = 'flex';
             try {
-        // Обновляем текст загрузки
-        document.querySelector('#loading span').textContent = 'Загрузка текущей недели...';
-        
-        // Загружаем текущую неделю
-        currentWeekNumber = await fetchJson('https://iis.bsuir.by/api/v1/schedule/current-week');
-        
-        // Обновляем текст загрузки
-        document.querySelector('#loading span').textContent = 'Загрузка данных преподавателей...';
-        
-        // Загружаем данные преподавателей
-        const teachers = await fetchJson('https://iis.bsuir.by/api/v1/employees/all');
-        teachersData = teachers;
-        
-        // Обновляем текст загрузки
-        document.querySelector('#loading span').textContent = 'Загрузка расписаний преподавателей...';
-        
-        // Загружаем расписания преподавателей
-        teacherSchedulesData = {};
-        const promises = teachers.map(async (teacher) => {
-            try {
-                const schedule = await fetchJson(`https://iis.bsuir.by/api/v1/employees/schedule/${teacher.urlId}`);
-                teacherSchedulesData[teacher.urlId] = schedule;
-            } catch (error) {
-                console.error(`Ошибка загрузки расписания для ${teacher.fio}:`, error);
-                teacherSchedulesData[teacher.urlId] = { schedules: {}, previousSchedules: {} };
-            }
-        });
-                
-                await Promise.all(promises);
-                
+                // Обновляем текст загрузки с процентами
+                updateLoadingTextWithProgress('Загрузка текущей недели', 0, 3);
+
+                // Загружаем текущую неделю
+                currentWeekNumber = await fetchJson('https://iis.bsuir.by/api/v1/schedule/current-week');
+                updateLoadingTextWithProgress('Загрузка текущей недели', 1, 3);
+
+                // Обновляем текст загрузки с процентами
+                updateLoadingTextWithProgress('Загрузка данных преподавателей', 1, 3);
+
+                // Загружаем данные преподавателей
+                const teachers = await fetchJson('https://iis.bsuir.by/api/v1/employees/all');
+                teachersData = teachers;
+                updateLoadingTextWithProgress('Загрузка данных преподавателей', 2, 3);
+
+                // Обновляем текст загрузки с процентами
+                updateLoadingTextWithProgress('Загрузка расписаний преподавателей', 2, 3);
+
+                // Загружаем расписания преподавателей параллельно
+                teacherSchedulesData = {};
+                let done = 0;
+                const total = teachers.length;
+                await Promise.all(teachers.map(async (teacher) => {
+                    try {
+                        const schedule = await fetchJson(`https://iis.bsuir.by/api/v1/employees/schedule/${teacher.urlId}`);
+                        teacherSchedulesData[teacher.urlId] = schedule;
+                    } catch (error) {
+                        console.error(`Ошибка загрузки расписания для ${teacher.fio}:`, error);
+                        teacherSchedulesData[teacher.urlId] = { schedules: {}, previousSchedules: {} };
+                    } finally {
+                        done++;
+                        updateLoadingTextWithProgress('Загрузка расписаний преподавателей', done, total);
+                    }
+                }));
+
                 // Устанавливаем текущую дату
                 const today = new Date();
-                //today.setHours(0, 0, 0, 0);
                 const yyyy = today.getFullYear();
                 const mm = String(today.getMonth() + 1).padStart(2, '0');
                 const dd = String(today.getDate()).padStart(2, '0');
                 document.getElementById('datePicker').value = `${yyyy}-${mm}-${dd}`;
-                
+
                 // Обновляем отображение недели
-                const dayName = dayNames[today.getDay()]; 
+                const dayName = dayNames[today.getDay()];
                 document.getElementById('weekDisplay').textContent = `${today.toLocaleDateString()} (${dayName}), ${currentWeekNumber}-я учебная неделя`;
-                 // Обновляем текст загрузки
-        document.querySelector('#loading span').textContent = 'Формирование расписания...';
+
+                updateLoadingTextWithProgress('Формирование расписания', 3, 3);
+
                 // Загружаем расписание для текущей даты
                 await updateSchedule(today, currentWeekNumber);
             } catch (error) {
@@ -90,6 +100,43 @@
                 document.getElementById('loading').style.display = 'none';
             }
         }
+
+        // Добавляем функцию для обновления прогресса с текстом
+function setProgress(done, total) {
+    const pct = total > 0 ? Math.round((done * 100) / total) : 0;
+    const progressBar = document.getElementById('bar');
+    const progressText = document.getElementById('pct');
+
+    progressBar.style.width = pct + '%';
+    progressText.textContent = `${pct}% (${done} из ${total})`;
+}
+
+// Добавляем функцию для логирования событий
+function log(message) {
+    const logElement = document.getElementById('log');
+    const time = new Date().toLocaleTimeString();
+    logElement.textContent += `[${time}] ${message}\n`;
+    logElement.scrollTop = logElement.scrollHeight;
+}
+
+// Пример использования функций в процессе загрузки
+async function exampleDownloadProcess() {
+    const total = 100; // Пример общего количества шагов
+    let done = 0;
+
+    for (let i = 0; i < total; i++) {
+        // Симуляция выполнения задачи
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        done++;
+        setProgress(done, total);
+        log(`Шаг ${done} из ${total} выполнен.`);
+    }
+
+    log('Загрузка завершена!');
+}
+
+// Пример вызова процесса загрузки
+exampleDownloadProcess();
 
         function calculateWeekNumber(selectedDate) {
             if (!currentWeekNumber) return null;
