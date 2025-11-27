@@ -78,8 +78,9 @@ function updateLoadingTextWithProgress(text, done, total) {
                     }
                 }));
 
-                // Устанавливаем текущую дату
+                // Устанавливаем текущую дату (нормализуем до 00:00 чтобы сравнения по датам были корректны)
                 const today = new Date();
+                today.setHours(0, 0, 0, 0);
                 const yyyy = today.getFullYear();
                 const mm = String(today.getMonth() + 1).padStart(2, '0');
                 const dd = String(today.getDate()).padStart(2, '0');
@@ -198,7 +199,12 @@ exampleDownloadProcess();
             return hours * 60 + minutes;
         }
 
-        function getLessonTypeClass(lessonType) {
+        function getLessonTypeClass(lessonType, isAnnouncement = false, annSource = null) {
+            if (isAnnouncement) {
+                if (annSource === 'manual') return 'announcement-manual';
+                if (annSource === 'schedule') return 'announcement-schedule';
+                return 'announcement';
+            }
             const typeMap = {
                 'ЛК': 'lecture',
                 'ПЗ': 'practice',
@@ -214,6 +220,36 @@ exampleDownloadProcess();
             return typeMap[lessonType] || '';
         }
 
+        // Создаёт сигнатуру занятия для детектирования дубликатов
+        function lessonSignature(lesson) {
+            const groups = (lesson.groups || []).join(',');
+            return `${(lesson.subject||'').trim()}||${lesson.startTime||''}||${lesson.endTime||''}||${groups}||${lesson.teacher||''}||${lesson.dateLesson||''}`;
+        }
+
+        // Безопасно получить минуты из строки времени, возвращает очень большое число если времени нет
+        function getMinutesSafe(timeStr) {
+            if (!timeStr) return Number.MAX_SAFE_INTEGER;
+            try {
+                return convertToMinutes(timeStr);
+            } catch (e) {
+                return Number.MAX_SAFE_INTEGER;
+            }
+        }
+
+        // Сортирует массив занятий по началу, затем по концу
+        function sortLessonsByTime(lessons) {
+            if (!Array.isArray(lessons)) return lessons;
+            lessons.sort((a, b) => {
+                const sa = getMinutesSafe(a.startTime);
+                const sb = getMinutesSafe(b.startTime);
+                if (sa !== sb) return sa - sb;
+                const ea = getMinutesSafe(a.endTime);
+                const eb = getMinutesSafe(b.endTime);
+                return ea - eb;
+            });
+            return lessons;
+        }
+
         async function getScheduleForAuditory(auditory, date, weekNumber) {
             const schedule = {};
             const dayName = dayNames[date.getDay()];
@@ -223,38 +259,61 @@ exampleDownloadProcess();
             for (const teacher of teachersData) {
                 const teacherSchedule = teacherSchedulesData[teacher.urlId] || {};
                 
-                for (const scheduleType of ['schedules', 'previousSchedules']) {
-                    const daySchedule = teacherSchedule[scheduleType]?.[dayName] || [];
-                    
+                // Обрабатываем расписание и экзамены/объявления из API (schedules, previousSchedules, exams)
+                for (const scheduleType of ['schedules', 'previousSchedules', 'exams']) {
+                    let daySchedule = [];
+                    if (scheduleType === 'exams') {
+                        daySchedule = teacherSchedule.exams || [];
+                    } else {
+                        daySchedule = teacherSchedule[scheduleType]?.[dayName] || [];
+                    }
+
                     for (const lesson of daySchedule) {
                         const weekNumbers = lesson?.weekNumber || [];
-                        
-                        if (lesson.auditories && lesson.auditories.includes(auditory) && 
-                            Array.isArray(weekNumbers) && weekNumbers.includes(weekNumber)) {
-                            
+                        const normalizedWeeks = Array.isArray(weekNumbers) ? weekNumbers.map(w => Number(w)).filter(w => Number.isInteger(w)) : [];
+
+                        // Определяем, является ли запись объявлением (по логике referencescript)
+                        const isAnnouncementForWeek = Boolean(lesson.announcement) || (
+                            (lesson.subject == null) && (lesson.subjectFullName == null) && !!(lesson.note && String(lesson.note).trim())
+                        );
+
+                        // Если это объявление и пользователь отключил их, пропускаем
+                        const showAnnouncements = document.getElementById('showAnnouncementsCheckbox') ? document.getElementById('showAnnouncementsCheckbox').checked : true;
+                        if (!showAnnouncements && isAnnouncementForWeek) continue;
+
+                        const lessonAuditories = Array.isArray(lesson.auditories) ? lesson.auditories.map(a => (a ?? '').trim()) : [];
+                        const targetAuditory = (auditory ?? '').trim();
+                        const isWeekMatch = isAnnouncementForWeek || normalizedWeeks.includes(Number(weekNumber));
+
+                        if (lessonAuditories.length > 0 && lessonAuditories.includes(targetAuditory) && isWeekMatch) {
                             const startDate = parseDate(lesson.startLessonDate);
                             const endDate = parseDate(lesson.endLessonDate);
                             const lessonDate = parseDate(lesson.dateLesson);
-                            
-                            if ((startDate && endDate && timeInRange(startDate, endDate, date)) || 
-                                (lessonDate && date.toDateString() === lessonDate.toDateString())) {
-                                
+                            const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+                            if ((startDate && endDate && timeInRange(startDate, endDate, normalizedDate)) ||
+                                (lessonDate && normalizedDate.toDateString() === lessonDate.toDateString())) {
+
                                 const lessonStartTime = lesson.startLessonTime;
                                 const lessonEndTime = lesson.endLessonTime;
-                                
+
                                 for (const timeSlot of timeSlotsOrder) {
-                                    const [slotStart, slotEnd] = timeSlot.split('—');
-                                    
+                                    const [slotStartRaw, slotEndRaw] = timeSlot.split('—');
+                                    const slotStart = slotStartRaw.trim();
+                                    const slotEnd = slotEndRaw.trim();
+
                                     if (isTimeInSlot(lessonStartTime, lessonEndTime, slotStart, slotEnd)) {
-                                        if (!schedule[timeSlot]) {
-                                            schedule[timeSlot] = [];
-                                        }
-                                        const subjectDisplay = (lesson.subject && lesson.subject.trim())
-                                            ? lesson.subject
-                                            : ((lesson.note && lesson.note.trim()) ? 'ОБЪЯВЛЕНИЕ' : '');
-                                        schedule[timeSlot].push({
+                                        if (!schedule[timeSlot]) schedule[timeSlot] = [];
+
+                                        const isAnnouncement = Boolean(lesson.announcement) || (
+                                            (lesson.subject == null) && (lesson.subjectFullName == null) && !!(lesson.note && String(lesson.note).trim())
+                                        );
+
+                                        const subjectDisplay = isAnnouncement ? 'ОБЪЯВЛЕНИЕ' : ((lesson.subject && lesson.subject.trim()) ? lesson.subject : '');
+
+                                        const newLesson = {
                                             subject: subjectDisplay,
-                                            type: lesson.lessonTypeAbbrev,
+                                            type: lesson.lessonTypeAbbrev || lesson.lessonType || '',
                                             note: lesson.note || null,
                                             startDate: lesson.startLessonDate || null,
                                             endDate: lesson.endLessonDate || null,
@@ -264,8 +323,15 @@ exampleDownloadProcess();
                                             teacherUrlId: teacher.urlId,
                                             groups: lesson.studentGroups?.map(g => g.name) || [],
                                             startTime: lessonStartTime,
-                                            endTime: lessonEndTime
-                                        });
+                                            endTime: lessonEndTime,
+                                            isAnnouncement: isAnnouncement,
+                                            annSource: isAnnouncement ? 'schedule' : null
+                                        };
+
+                                        const sig = lessonSignature(newLesson);
+                                        if (!schedule[timeSlot].some(l => lessonSignature(l) === sig)) {
+                                            schedule[timeSlot].push(newLesson);
+                                        }
                                     }
                                 }
                             }
@@ -278,6 +344,10 @@ exampleDownloadProcess();
         }
 
         async function updateSchedule(date, weekNumber) {
+            // Нормализуем входную дату до полуночи — это важно для корректных проверок периодов
+            date = new Date(date);
+            date.setHours(0, 0, 0, 0);
+
             if (!weekNumber) {
                 console.error('Не удалось определить номер недели');
                 return;
@@ -399,11 +469,14 @@ exampleDownloadProcess();
                             cell.classList.add('current-time-slot');
                         }
                         
-                        const lessons = result.schedule[timeSlot];
+                        let lessons = result.schedule[timeSlot];
+                        if (lessons && lessons.length > 1) {
+                            lessons = sortLessonsByTime(lessons);
+                        }
                         if (lessons && lessons.length > 0) {
                             lessons.forEach(lesson => {
                                 const lessonDiv = document.createElement('div');
-                                const typeClass = getLessonTypeClass(lesson.type);
+                                const typeClass = getLessonTypeClass(lesson.type, lesson.isAnnouncement, lesson.annSource);
                                 lessonDiv.className = `lesson ${typeClass}`;
                                 
                                 const startTime = lesson.startTime.substring(0, 5);
@@ -578,17 +651,18 @@ exampleDownloadProcess();
                         auditoryCard.appendChild(auditoryName);
                         
                         // Занятия в этой аудитории
-                        const lessonsInThisSlot = result.schedule[timeSlot] || [];
+                            let lessonsInThisSlot = result.schedule[timeSlot] || [];
+                            if (lessonsInThisSlot.length > 1) lessonsInThisSlot = sortLessonsByTime(lessonsInThisSlot);
                         // Добавляем эмодзи только если в этом слоте есть занятия
                         if (lessonsInThisSlot.length > 0) {
                             auditoryName.textContent = result.auditory + emoji;
                         } else {
                             auditoryName.textContent = result.auditory;
                         }
-                        if (lessonsInThisSlot.length > 0) {
+                            if (lessonsInThisSlot.length > 0) {
                             lessonsInThisSlot.forEach(lesson => {
                             const lessonDiv = document.createElement('div');
-                            const typeClass = getLessonTypeClass(lesson.type);
+                            const typeClass = getLessonTypeClass(lesson.type, lesson.isAnnouncement, lesson.annSource);
                             lessonDiv.className = `mobile-lesson ${typeClass}`;
                             const startTime = lesson.startTime.substring(0, 5);
                             const endTime = lesson.endTime.substring(0, 5);
@@ -672,6 +746,27 @@ exampleDownloadProcess();
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
+            // Восстанавливаем состояния чекбоксов из localStorage (если есть)
+            try {
+                const showAnnouncementsSaved = localStorage.getItem('showAnnouncements');
+                if (showAnnouncementsSaved !== null) {
+                    const el = document.getElementById('showAnnouncementsCheckbox');
+                    if (el) el.checked = showAnnouncementsSaved === 'true';
+                }
+                const show602Saved = localStorage.getItem('show602');
+                if (show602Saved !== null) {
+                    const el = document.getElementById('show602Checkbox');
+                    if (el) el.checked = show602Saved === 'true';
+                }
+                const showAllSaved = localStorage.getItem('showAllAuditories');
+                if (showAllSaved !== null) {
+                    const el = document.getElementById('showAllAuditoriesCheckbox');
+                    if (el) el.checked = showAllSaved === 'true';
+                }
+            } catch (e) {
+                console.warn('localStorage недоступен:', e);
+            }
+
             loadInitialData();
             
             // Обработчик изменения даты
@@ -686,23 +781,44 @@ exampleDownloadProcess();
                 await updateSchedule(selectedDate, weekNumber);
             });
             
+            // Обработчик изменения чекбокса объявлений
+            const showAnnouncementsEl = document.getElementById('showAnnouncementsCheckbox');
+            if (showAnnouncementsEl) {
+                showAnnouncementsEl.addEventListener('change', async () => {
+                    try { localStorage.setItem('showAnnouncements', showAnnouncementsEl.checked); } catch (e) {}
+                    if (document.getElementById('datePicker') && document.getElementById('datePicker').value) {
+                        const selectedDate = new Date(document.getElementById('datePicker').value);
+                        const weekNumber = calculateWeekNumber(selectedDate);
+                        await updateSchedule(selectedDate, weekNumber);
+                    }
+                });
+            }
+
             // Обработчик изменения чекбокса 602-2 к.
-            document.getElementById('show602Checkbox').addEventListener('change', async () => {
-                if (document.getElementById('datePicker') && document.getElementById('datePicker').value) {
-                    const selectedDate = new Date(document.getElementById('datePicker').value);
-                    const weekNumber = calculateWeekNumber(selectedDate);
-                    await updateSchedule(selectedDate, weekNumber);
-                }
-            });
+            const show602El = document.getElementById('show602Checkbox');
+            if (show602El) {
+                show602El.addEventListener('change', async () => {
+                    try { localStorage.setItem('show602', show602El.checked); } catch (e) {}
+                    if (document.getElementById('datePicker') && document.getElementById('datePicker').value) {
+                        const selectedDate = new Date(document.getElementById('datePicker').value);
+                        const weekNumber = calculateWeekNumber(selectedDate);
+                        await updateSchedule(selectedDate, weekNumber);
+                    }
+                });
+            }
             
             // Обработчик изменения чекбокса "Показать все кабинеты"
-            document.getElementById('showAllAuditoriesCheckbox').addEventListener('change', async () => {
-                if (document.getElementById('datePicker') && document.getElementById('datePicker').value) {
-                    const selectedDate = new Date(document.getElementById('datePicker').value);
-                    const weekNumber = calculateWeekNumber(selectedDate);
-                    await updateSchedule(selectedDate, weekNumber);
-                }
-            });
+            const showAllEl = document.getElementById('showAllAuditoriesCheckbox');
+            if (showAllEl) {
+                showAllEl.addEventListener('change', async () => {
+                    try { localStorage.setItem('showAllAuditories', showAllEl.checked); } catch (e) {}
+                    if (document.getElementById('datePicker') && document.getElementById('datePicker').value) {
+                        const selectedDate = new Date(document.getElementById('datePicker').value);
+                        const weekNumber = calculateWeekNumber(selectedDate);
+                        await updateSchedule(selectedDate, weekNumber);
+                    }
+                });
+            }
         // Обработчики для кнопок переключения дней
 document.getElementById('prevDayBtn').addEventListener('click', () => {
     const datePicker = document.getElementById('datePicker');

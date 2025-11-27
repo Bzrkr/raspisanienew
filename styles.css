@@ -448,7 +448,7 @@ padding: 4px;
             padding-top: 6px;
             border-top: 1px dashed #ddd;
             font-size: 0.85em;
-            color: #444;
+            color: #ff0000;
         }
         
         .group-link {
@@ -499,6 +499,11 @@ padding: 4px;
         .Instpractice{ background-color: #ffffff; border-left: 4px solid #8e4fec; }
         .Instlab{ background-color: #ffffff; border-left: 4px solid #f98f43; }
         .Instlecture{ background-color: #ffffff; border-left: 4px solid #33db24; }
+
+        /* Visual highlight for announcements */
+        .announcement-schedule { background-color: #fff6d6; border-left: 4px solid #ffb400; color: #5a3b00; }
+        .announcement-manual { background-color: #fff1e6; border-left: 4px dashed #ff7a00; color: #5a2b00; }
+        .announcement { background-color: #fff6d6; border-left: 4px solid #ffb400; color: #5a3b00; }
 
         /* Стили для кастомного чекбокса */
         .checkbox-container {
@@ -718,7 +723,7 @@ padding: 4px;
                 padding-top: 6px;
                 border-top: 1px dashed #eee;
                 font-size: 0.85em;
-                color: #444;
+                color: #ff0000;
             }
             
             /* Стили для чекбоксов в мобильной версии */
