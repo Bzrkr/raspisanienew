@@ -26,12 +26,24 @@ const dayNames = ["Воскресенье", "Понедельник", "Втор�
             return show602 ? [...IPEauditories, ...additionalAuditories] : IPEauditories;
         }
 
-        async function fetchJson(url) {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
+        async function fetchJson(url, options = {}) {
+            const retries = options.retries ?? 2;
+            const retryDelay = options.retryDelay ?? 500; // ms
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    return response.json();
+                } catch (err) {
+                    const isLast = attempt === retries;
+                    // Network errors (TypeError) or interrupted network
+                    console.warn(`fetchJson attempt ${attempt + 1} for ${url} failed:`, err);
+                    if (isLast) throw err;
+                    await new Promise(r => setTimeout(r, retryDelay * Math.pow(2, attempt)));
+                }
             }
-            return response.json();
         }
 
         // Обновляем текст загрузки с процентами
@@ -61,22 +73,48 @@ function updateLoadingTextWithProgress(text, done, total) {
                 // Обновляем текст загрузки с процентами
                 updateLoadingTextWithProgress('Загрузка расписаний преподавателей', 2, 3);
 
-                // Загружаем расписания преподавателей параллельно
+                // Загружаем расписания преподавателей батчами (чтобы не перегружать сеть/сервер)
                 teacherSchedulesData = {};
                 let done = 0;
                 const total = teachers.length;
-                await Promise.all(teachers.map(async (teacher) => {
-                    try {
-                        const schedule = await fetchJson(`https://iis.bsuir.by/api/v1/employees/schedule/${teacher.urlId}`);
-                        teacherSchedulesData[teacher.urlId] = schedule;
-                    } catch (error) {
-                        console.error(`Ошибка загрузки расписания для ${teacher.fio}:`, error);
-                        teacherSchedulesData[teacher.urlId] = { schedules: {}, previousSchedules: {} };
-                    } finally {
-                        done++;
-                        updateLoadingTextWithProgress('Загрузка расписаний преподавателей', done, total);
+                const concurrency = 8;
+                const queue = [...teachers];
+
+                async function processNext() {
+                    while (queue.length > 0) {
+                        const teacher = queue.shift();
+                        try {
+                            if (!teacher || !teacher.urlId) {
+                                console.warn('Пропускаю учителя без urlId', teacher);
+                                teacherSchedulesData[teacher?.urlId] = { schedules: {}, previousSchedules: {}, exams: [] };
+                            } else {
+                                const resp = await fetchJson(`https://iis.bsuir.by/api/v1/employees/schedule/${teacher.urlId}`, { retries: 2, retryDelay: 300 });
+                                let schedule = resp;
+                                if (resp && typeof resp === 'object') {
+                                    if (resp[teacher.urlId]) schedule = resp[teacher.urlId];
+                                    else {
+                                        const keys = Object.keys(resp);
+                                        if (keys.length === 1 && resp[keys[0]] && (resp[keys[0]].schedules || resp[keys[0]].exams)) {
+                                            schedule = resp[keys[0]];
+                                        }
+                                    }
+                                }
+                                teacherSchedulesData[teacher.urlId] = schedule || { schedules: {}, previousSchedules: {}, exams: [] };
+                            }
+                        } catch (error) {
+                            console.error(`Ошибка загрузки расписания для ${teacher?.fio || teacher?.urlId}:`, error);
+                            teacherSchedulesData[teacher?.urlId] = { schedules: {}, previousSchedules: {}, exams: [] };
+                        } finally {
+                            done++;
+                            updateLoadingTextWithProgress('Загрузка расписаний преподавателей', done, total);
+                        }
                     }
-                }));
+                }
+
+                // Запускаем несколько параллельных воркеров
+                const workers = [];
+                for (let i = 0; i < concurrency; i++) workers.push(processNext());
+                await Promise.all(workers);
 
                 // Устанавливаем текущую дату (нормализуем до 00:00 чтобы сравнения по датам были корректны)
                 const today = new Date();
